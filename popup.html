@@ -15,11 +15,19 @@
 
     <div class="section">
       <h2>Screenshot</h2>
-      <button id="btn-screenshot" class="btn primary">
+      <button id="btn-visible" class="btn primary">
         <span class="icon">📷</span>
-        Capture Visible Tab
+        Visible Area
       </button>
-      <p class="hint">Captures the current tab at high quality</p>
+      <button id="btn-fullpage" class="btn secondary">
+        <span class="icon">📄</span>
+        Full Page
+      </button>
+      <button id="btn-region" class="btn secondary">
+        <span class="icon">✂️</span>
+        Select Area
+      </button>
+      <p class="hint">Visible Area = what you see now<br>Full Page = entire scrollable page<br>Select Area = draw a box</p>
     </div>
 
     <div class="section">
@@ -28,14 +36,7 @@
         <span class="icon">🎥</span>
         Start Recording
       </button>
-      <button id="btn-stop-record" class="btn danger" disabled>
-        <span class="icon">⏹</span>
-        Stop Recording
-      </button>
-      <p class="hint">Records at 1080p. Choose tab, window or entire screen.</p>
-      <div id="recording-status" class="status hidden">
-        <span class="dot"></span> Recording… <span id="timer">00:00</span>
-      </div>
+      <p class="hint">A small window will open. You can freely switch tabs and work while recording continues.</p>
     </div>
 
     <footer>
