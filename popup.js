@@ -1,14 +1,9 @@
 // ===== TABS =====
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => {
-      t.classList.remove('tab-active');
-      t.classList.add('text-slate-500');
-    });
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-
-    tab.classList.add('tab-active');
-    tab.classList.remove('text-slate-500');
+    tab.classList.add('active');
     document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
   });
 });
@@ -31,7 +26,7 @@ document.getElementById('btn-visible').addEventListener('click', async () => {
     const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png', quality: 100 });
     await downloadDataUrl(dataUrl, 'screenshot-visible');
     const orig = btn.innerHTML;
-    btn.innerHTML = '<span class="text-xl">✓</span><span class="text-[11px] font-medium text-slate-700">Saved!</span>';
+    btn.innerHTML = '<span class="ico">✓</span><span class="lbl">Saved!</span>';
     setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 1200);
   } catch (err) {
     console.error(err);
@@ -82,7 +77,7 @@ document.getElementById('btn-fullpage').addEventListener('click', async () => {
   const orig = btn.innerHTML;
   try {
     btn.disabled = true;
-    btn.innerHTML = '<span class="text-xl">⏳</span><span class="text-[11px] font-medium text-slate-700">Capturing…</span>';
+    btn.innerHTML = '<span class="ico">⏳</span><span class="lbl">Capturing…</span>';
     const objectUrl = await doFullPageCapture();
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     await chrome.downloads.download({
@@ -90,7 +85,7 @@ document.getElementById('btn-fullpage').addEventListener('click', async () => {
       filename: `screenshot-fullpage-${timestamp}.png`,
       saveAs: false
     });
-    btn.innerHTML = '<span class="text-xl">✓</span><span class="text-[11px] font-medium text-slate-700">Saved!</span>';
+    btn.innerHTML = '<span class="ico">✓</span><span class="lbl">Saved!</span>';
     setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 1200);
   } catch (err) {
     console.error(err);
@@ -122,12 +117,12 @@ document.getElementById('btn-delay').addEventListener('click', async () => {
   try {
     btn.disabled = true;
     for (let i = 3; i > 0; i--) {
-      btn.innerHTML = `<span>⏱️</span><span>Capturing in ${i}s…</span>`;
+      btn.textContent = `⏱️ Capturing in ${i}s…`;
       await new Promise(r => setTimeout(r, 1000));
     }
     const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png', quality: 100 });
     await downloadDataUrl(dataUrl, 'screenshot-delay');
-    btn.innerHTML = `<span>✓</span><span>Saved!</span>`;
+    btn.textContent = '✓ Saved!';
     setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 1000);
   } catch (err) {
     console.error(err);
@@ -184,29 +179,27 @@ document.getElementById('btn-start-record').addEventListener('click', async () =
   btn.disabled = true;
   btn.textContent = 'Starting…';
 
+  const settings = { mode: selectedMode, quality, mic, systemAudio };
+
   try {
-    // Start recording via background → offscreen (no visible window)
+    // Try offscreen first (no visible window)
     const result = await chrome.runtime.sendMessage({
       type: 'START_RECORDING',
-      settings: {
-        mode: selectedMode,
-        quality,
-        mic,
-        systemAudio
-      }
+      settings
     });
 
     if (result && result.ok === false) {
-      throw new Error(result.error || 'Failed to start');
+      throw new Error(result.error || 'Offscreen failed');
     }
 
-    // Close popup - recording continues in offscreen
+    // Success - close popup, recording runs in background
     window.close();
   } catch (err) {
-    console.error(err);
-    // Fallback: direct getDisplayMedia in popup if offscreen fails
+    console.warn('Offscreen path failed, using direct fallback:', err);
+    // Fallback: direct in popup (Chrome share bar will show)
     try {
-      await startDirectRecording({ mode: selectedMode, quality, mic, systemAudio });
+      await startDirectRecording(settings);
+      // Keep popup open briefly is not needed; user stops via Chrome bar
       window.close();
     } catch (e2) {
       console.error(e2);
@@ -217,7 +210,6 @@ document.getElementById('btn-start-record').addEventListener('click', async () =
   }
 });
 
-// Fallback direct recording (runs in popup, user keeps Chrome share bar)
 async function startDirectRecording(settings) {
   const resMap = {
     '720':  { w: 1280, h: 720,  br: 6000000 },
