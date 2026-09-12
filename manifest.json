@@ -15,19 +15,9 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Screenshot & Recorder",
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
-    }
+    "default_title": "Screenshot & Recorder"
   },
   "background": {
     "service_worker": "background.js"
-  },
-  "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
   }
 }
