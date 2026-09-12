@@ -1,10 +1,11 @@
 // Service worker - Manifest V3
 
+let controlsWindowId = null;
+
 chrome.runtime.onInstalled.addListener(() => {
   console.log('1080p Screenshot & Screen Recorder installed.');
 });
 
-// Ensure offscreen document exists
 async function setupOffscreen() {
   const contexts = await chrome.runtime.getContexts({
     contextTypes: ['OFFSCREEN_DOCUMENT']
@@ -14,8 +15,34 @@ async function setupOffscreen() {
   await chrome.offscreen.createDocument({
     url: 'offscreen.html',
     reasons: ['USER_MEDIA'],
-    justification: 'Recording screen/tab without a visible window'
+    justification: 'Recording screen/tab without capturing the control bar'
   });
+}
+
+async function openControlsBar() {
+  // Close existing controls if any
+  if (controlsWindowId !== null) {
+    try { await chrome.windows.remove(controlsWindowId); } catch (_) {}
+    controlsWindowId = null;
+  }
+
+  const win = await chrome.windows.create({
+    url: chrome.runtime.getURL('controls.html'),
+    type: 'popup',
+    width: 220,
+    height: 64,
+    focused: true,
+    top: 80,
+    left: 80
+  });
+  controlsWindowId = win.id;
+}
+
+async function closeControlsBar() {
+  if (controlsWindowId !== null) {
+    try { await chrome.windows.remove(controlsWindowId); } catch (_) {}
+    controlsWindowId = null;
+  }
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -31,18 +58,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  // Start recording via offscreen
+  // Start recording
   if (message.type === 'START_RECORDING') {
     (async () => {
       try {
         await setupOffscreen();
-        // Small delay to ensure offscreen is ready
-        await new Promise(r => setTimeout(r, 150));
+        await new Promise(r => setTimeout(r, 120));
+
         const result = await chrome.runtime.sendMessage({
           type: 'START_OFFSCREEN_RECORDING',
           settings: message.settings
         });
-        sendResponse(result || { ok: true });
+
+        if (result && result.ok === false) {
+          sendResponse(result);
+          return;
+        }
+
+        // Open floating control bar AFTER recording starts
+        // selfBrowserSurface:exclude ensures this bar is NOT in the video
+        await openControlsBar();
+        sendResponse({ ok: true });
       } catch (err) {
         console.error(err);
         sendResponse({ ok: false, error: err.message });
@@ -51,12 +87,48 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  // Stop recording
+  // Stop
   if (message.type === 'STOP_RECORDING') {
-    chrome.runtime.sendMessage({ type: 'STOP_OFFSCREEN_RECORDING' })
+    (async () => {
+      try {
+        await chrome.runtime.sendMessage({ type: 'STOP_OFFSCREEN_RECORDING' });
+      } catch (_) {}
+      await closeControlsBar();
+      sendResponse({ ok: true });
+    })();
+    return true;
+  }
+
+  // Pause
+  if (message.type === 'PAUSE_RECORDING') {
+    chrome.runtime.sendMessage({ type: 'PAUSE_OFFSCREEN_RECORDING' })
       .then(() => sendResponse({ ok: true }))
       .catch(() => sendResponse({ ok: true }));
     return true;
+  }
+
+  // Resume
+  if (message.type === 'RESUME_RECORDING') {
+    chrome.runtime.sendMessage({ type: 'RESUME_OFFSCREEN_RECORDING' })
+      .then(() => sendResponse({ ok: true }))
+      .catch(() => sendResponse({ ok: true }));
+    return true;
+  }
+
+  // Recording ended (from offscreen)
+  if (message.type === 'RECORDING_STOPPED' || message.type === 'RECORDING_FAILED') {
+    closeControlsBar();
+    // Forward to controls window if still open
+    return false;
+  }
+});
+
+// Clean up if user closes the controls window manually
+chrome.windows.onRemoved.addListener((windowId) => {
+  if (windowId === controlsWindowId) {
+    controlsWindowId = null;
+    // Optional: stop recording when control bar is closed
+    chrome.runtime.sendMessage({ type: 'STOP_OFFSCREEN_RECORDING' }).catch(() => {});
   }
 });
 
