@@ -50,7 +50,7 @@ h2 {
 
 .btn {
   width: 100%;
-  padding: 12px 16px;
+  padding: 11px 16px;
   border: none;
   border-radius: 8px;
   font-size: 14px;
@@ -79,15 +79,16 @@ h2 {
   transform: translateY(-1px);
 }
 
-.btn.danger {
-  background: #2a2a2a;
-  color: #ff6b6b;
-  border: 1px solid #3a3a3a;
+.btn.secondary {
+  background: #1a1a1a;
+  color: #e0e0e0;
+  border: 1px solid #333;
 }
 
-.btn.danger:hover:not(:disabled) {
-  background: #3a2020;
-  border-color: #ff6b6b;
+.btn.secondary:hover:not(:disabled) {
+  background: #252525;
+  border-color: #d4af37;
+  color: #fff;
 }
 
 .icon {
@@ -97,37 +98,8 @@ h2 {
 .hint {
   font-size: 11px;
   color: #777;
-  line-height: 1.4;
-  margin-top: 4px;
-}
-
-.status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  padding: 10px 12px;
-  background: #1a1a1a;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #ff6b6b;
-}
-
-.status.hidden {
-  display: none;
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  background: #ff6b6b;
-  border-radius: 50%;
-  animation: pulse 1.2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
+  line-height: 1.5;
+  margin-top: 6px;
 }
 
 footer {
