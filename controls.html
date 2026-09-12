@@ -2,96 +2,241 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Recording</title>
+  <title>Recording Controls</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     html, body {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: transparent;
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      background: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', Roboto, sans-serif;
       user-select: none;
-    }
-    .bar {
+      -webkit-font-smoothing: antialiased;
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 8px 12px;
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.72);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      border: 1px solid rgba(255, 255, 255, 0.7);
-      box-shadow: 0 8px 28px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.8);
+      justify-content: center;
+      position: relative;
+    }
+
+    /* Ambient Liquid Mesh Glows */
+    .ambient-glow {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(28px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .orb-1 {
+      width: 110px;
+      height: 110px;
+      top: -20px;
+      left: -20px;
+      background: radial-gradient(circle, rgba(147, 197, 253, 0.8) 0%, rgba(199, 210, 254, 0.4) 60%, transparent 100%);
+      animation: floatOrb 6s ease-in-out infinite alternate;
+    }
+
+    .orb-2 {
+      width: 120px;
+      height: 120px;
+      bottom: -20px;
+      right: -20px;
+      background: radial-gradient(circle, rgba(254, 215, 170, 0.75) 0%, rgba(253, 186, 116, 0.4) 60%, transparent 100%);
+      animation: floatOrb 7s ease-in-out infinite alternate-reverse;
+    }
+
+    @keyframes floatOrb {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(8px, 6px) scale(1.08); }
+    }
+
+    /* Liquid Glass Capsule Bar */
+    .glass-bar {
+      position: relative;
+      z-index: 1;
+      width: calc(100% - 12px);
+      height: calc(100% - 12px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(28px) saturate(190%);
+      -webkit-backdrop-filter: blur(28px) saturate(190%);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow:
+        0 12px 28px -6px rgba(15, 23, 42, 0.12),
+        0 4px 10px -2px rgba(15, 23, 42, 0.05),
+        inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95),
+        inset 0 -1px 2px 0 rgba(0, 0, 0, 0.02);
       cursor: grab;
     }
-    .bar:active { cursor: grabbing; }
+
+    .glass-bar:active {
+      cursor: grabbing;
+    }
+
+    /* Status & Timer Section */
+    .status-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot-wrapper {
+      width: 14px;
+      height: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     .dot {
       width: 9px;
       height: 9px;
       border-radius: 50%;
       background: #ef4444;
-      box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.85);
       flex-shrink: 0;
+      transition: all 0.2s ease;
     }
+
+    .dot.recording {
+      animation: pulseRecord 1.3s infinite;
+    }
+
     .dot.paused {
       background: #f59e0b;
-      box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.85);
       animation: none;
     }
-    .dot.recording {
-      animation: pulse 1.2s infinite;
-    }
-    @keyframes pulse {
+
+    @keyframes pulseRecord {
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.4; transform: scale(0.85); }
     }
+
     #timer {
-      font-size: 14px;
-      font-weight: 600;
-      color: #1e293b;
-      min-width: 48px;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #0f172a;
       letter-spacing: 0.5px;
       font-variant-numeric: tabular-nums;
     }
+
+    .divider {
+      width: 1px;
+      height: 20px;
+      background: rgba(15, 23, 42, 0.1);
+      margin: 0 2px;
+    }
+
+    /* Action Buttons */
+    .actions-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     .btn {
-      width: 32px;
-      height: 32px;
-      border: none;
+      height: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.85);
       border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      font-size: 14px;
-      transition: all 0.15s ease;
-      background: rgba(0,0,0,0.06);
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      background: rgba(255, 255, 255, 0.8);
       color: #334155;
+      box-shadow: 0 2px 5px rgba(15, 23, 42, 0.03);
     }
-    .btn:hover {
-      background: rgba(0,0,0,0.1);
-      transform: scale(1.05);
+
+    .btn-pause {
+      width: 32px;
+      font-size: 13px;
     }
-    .btn.stop {
-      background: rgba(239, 68, 68, 0.12);
+
+    .btn-pause:hover {
+      background: #ffffff;
+      color: #2563eb;
+      border-color: rgba(37, 99, 235, 0.3);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.12);
+    }
+
+    .btn-stop {
+      padding: 0 10px;
+      gap: 5px;
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.22);
       color: #dc2626;
     }
-    .btn.stop:hover {
-      background: rgba(239, 68, 68, 0.22);
+
+    .btn-stop:hover {
+      background: rgba(239, 68, 68, 0.18);
+      border-color: rgba(239, 68, 68, 0.35);
+      color: #b91c1c;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.18);
     }
+
+    .btn:active {
+      transform: translateY(0) scale(0.96);
+    }
+
     .btn:disabled {
-      opacity: 0.4;
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
       pointer-events: none;
+    }
+
+    .mini-spinner {
+      width: 10px;
+      height: 10px;
+      border: 2px solid rgba(220, 38, 38, 0.3);
+      border-top-color: #dc2626;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
-  <div class="bar" id="bar">
-    <div class="dot recording" id="dot"></div>
-    <div id="timer">00:00</div>
-    <button class="btn" id="btn-pause" title="Pause / Resume">⏸</button>
-    <button class="btn stop" id="btn-stop" title="Stop & Save">⏹</button>
+  <!-- Ambient Liquid Mesh Glows -->
+  <div class="ambient-glow orb-1"></div>
+  <div class="ambient-glow orb-2"></div>
+
+  <div class="glass-bar" id="bar">
+    <div class="status-group">
+      <div class="dot-wrapper">
+        <div class="dot recording" id="dot"></div>
+      </div>
+      <div id="timer">00:00</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="actions-group">
+      <button class="btn btn-pause" id="btn-pause" title="Pause Recording">⏸</button>
+      <button class="btn btn-stop" id="btn-stop" title="Stop & Preview">
+        <span id="stop-icon">⏹</span>
+        <span id="stop-text">Stop</span>
+      </button>
+    </div>
   </div>
   <script src="controls.js"></script>
 </body>

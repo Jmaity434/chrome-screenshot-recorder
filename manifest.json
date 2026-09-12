@@ -10,7 +10,8 @@
     "downloads",
     "storage",
     "offscreen",
-    "windows"
+    "windows",
+    "clipboardWrite"
   ],
   "host_permissions": [
     "<all_urls>"

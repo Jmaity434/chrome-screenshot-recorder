@@ -3,80 +3,130 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Screen Capture</title>
+  <title>Screen Capture & Recorder</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="glass-wrap">
+  <!-- Ambient Liquid Lighting Backdrops -->
+  <div class="ambient-glow orb-1"></div>
+  <div class="ambient-glow orb-2"></div>
+  <div class="ambient-glow orb-3"></div>
 
+  <div class="glass-wrap">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-icon">✨</span>
+        <span class="brand-name">ScreenStudio</span>
+      </div>
+      <span class="brand-tag">HD 1080p</span>
+    </header>
+
+    <!-- Navigation Tabs -->
     <div class="tabs">
-      <button class="tab active" data-tab="screenshot">📷 Screenshot</button>
-      <button class="tab" data-tab="record">🎥 Record</button>
+      <button class="tab active" data-tab="screenshot">
+        <span class="tab-icon">📷</span>
+        <span>Screenshot</span>
+      </button>
+      <button class="tab" data-tab="record">
+        <span class="tab-icon">🎥</span>
+        <span>Record</span>
+      </button>
     </div>
 
+    <!-- Screenshot Panel -->
     <div id="panel-screenshot" class="panel active">
+      <div class="section-label">Quick Capture</div>
       <div class="grid-3">
         <button id="btn-visible" class="card">
-          <span class="ico">🖥️</span>
-          <span class="lbl">Visible Part</span>
+          <div class="icon-bubble">🖥️</div>
+          <span class="lbl">Visible Area</span>
         </button>
         <button id="btn-fullpage" class="card">
-          <span class="ico">📄</span>
+          <div class="icon-bubble">📄</div>
           <span class="lbl">Full Page</span>
         </button>
         <button id="btn-region" class="card">
-          <span class="ico">✂️</span>
-          <span class="lbl">Selected Area</span>
+          <div class="icon-bubble">✂️</div>
+          <span class="lbl">Select Area</span>
         </button>
       </div>
 
+      <div class="section-label">Advanced</div>
       <div class="list">
-        <button id="btn-delay" class="row">⏱️ Visible Part after Delay</button>
-        <button id="btn-desktop-shot" class="row">🖥️ Entire Screen</button>
+        <button id="btn-delay" class="row">
+          <span class="row-icon">⏱️</span>
+          <span class="row-text">Capture after 3s Delay</span>
+          <span class="row-arrow">→</span>
+        </button>
+        <button id="btn-desktop-shot" class="row">
+          <span class="row-icon">💻</span>
+          <span class="row-text">Entire Screen Capture</span>
+          <span class="row-arrow">→</span>
+        </button>
       </div>
 
-      <p class="note">Saved to Downloads • No account needed</p>
+      <p class="note">Instant downloads • Lossless PNG</p>
     </div>
 
+    <!-- Record Panel -->
     <div id="panel-record" class="panel">
+      <div class="section-label">Capture Source</div>
       <div class="grid-2">
         <button class="card rec-mode selected" data-mode="monitor">
-          <span class="ico">🖥️</span>
-          <span class="lbl">Desktop</span>
+          <div class="icon-bubble">🖥️</div>
+          <span class="lbl">Entire Screen</span>
         </button>
         <button class="card rec-mode" data-mode="browser">
-          <span class="ico">🌐</span>
-          <span class="lbl">This Tab</span>
+          <div class="icon-bubble">🌐</div>
+          <span class="lbl">Current Tab</span>
         </button>
         <button class="card rec-mode" data-mode="window">
-          <span class="ico">🗔</span>
-          <span class="lbl">Window</span>
+          <div class="icon-bubble">🗔</div>
+          <span class="lbl">App Window</span>
         </button>
         <button class="card disabled" disabled>
-          <span class="ico">📷</span>
-          <span class="lbl">Camera</span>
+          <div class="icon-bubble">📷</div>
+          <span class="lbl">Webcam</span>
         </button>
       </div>
 
-      <div class="toggles">
-        <label><input type="checkbox" id="toggle-mic" checked> 🎤 Mic</label>
-        <label><input type="checkbox" id="toggle-system-audio" checked> 🔊 System</label>
+      <div class="section-label">Audio & Quality</div>
+      <div class="glass-controls-box">
+        <div class="toggles">
+          <label class="toggle-pill">
+            <input type="checkbox" id="toggle-mic" checked>
+            <span class="toggle-custom"></span>
+            <span>🎤 Mic</span>
+          </label>
+          <label class="toggle-pill">
+            <input type="checkbox" id="toggle-system-audio" checked>
+            <span class="toggle-custom"></span>
+            <span>🔊 System</span>
+          </label>
+        </div>
+
+        <div class="quality">
+          <div class="select-wrapper">
+            <select id="quality-select">
+              <option value="1080" selected>1080p Ultra HD</option>
+              <option value="720">720p HD</option>
+              <option value="1440">1440p 2K QHD</option>
+            </select>
+          </div>
+          <span class="badge">WebM 60FPS</span>
+        </div>
       </div>
 
-      <div class="quality">
-        <select id="quality-select">
-          <option value="1080" selected>1080p</option>
-          <option value="720">720p</option>
-          <option value="1440">1440p</option>
-        </select>
-        <span class="badge">WebM</span>
-      </div>
-
-      <button id="btn-start-record" class="start-btn">● Start Recording</button>
-      <p class="note">Recording starts immediately • No extra window</p>
+      <button id="btn-start-record" class="start-btn">
+        <span class="rec-dot"></span>
+        <span>Start Recording</span>
+      </button>
+      <p class="note">Floating control bar • No extra tab needed</p>
     </div>
 
   </div>
+  <script src="db.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

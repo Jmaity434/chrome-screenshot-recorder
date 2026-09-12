@@ -1,4 +1,5 @@
 // Service worker - Manifest V3
+importScripts('db.js');
 
 let controlsWindowId = null;
 
@@ -14,7 +15,7 @@ async function setupOffscreen() {
 
   await chrome.offscreen.createDocument({
     url: 'offscreen.html',
-    reasons: ['USER_MEDIA'],
+    reasons: ['DISPLAY_MEDIA', 'USER_MEDIA'],
     justification: 'Recording screen/tab without capturing the control bar'
   });
 }
@@ -22,15 +23,16 @@ async function setupOffscreen() {
 async function openControlsBar() {
   // Close existing controls if any
   if (controlsWindowId !== null) {
-    try { await chrome.windows.remove(controlsWindowId); } catch (_) {}
+    const oldId = controlsWindowId;
     controlsWindowId = null;
+    try { await chrome.windows.remove(oldId); } catch (_) {}
   }
 
   const win = await chrome.windows.create({
     url: chrome.runtime.getURL('controls.html'),
     type: 'popup',
-    width: 220,
-    height: 64,
+    width: 260,
+    height: 76,
     focused: true,
     top: 80,
     left: 80
@@ -40,8 +42,9 @@ async function openControlsBar() {
 
 async function closeControlsBar() {
   if (controlsWindowId !== null) {
-    try { await chrome.windows.remove(controlsWindowId); } catch (_) {}
+    const oldId = controlsWindowId;
     controlsWindowId = null;
+    try { await chrome.windows.remove(oldId); } catch (_) {}
   }
 }
 
@@ -63,12 +66,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       try {
         await setupOffscreen();
-        await new Promise(r => setTimeout(r, 120));
 
-        const result = await chrome.runtime.sendMessage({
-          type: 'START_OFFSCREEN_RECORDING',
-          settings: message.settings
-        });
+        // Retry sending START_OFFSCREEN_RECORDING in case document is still initializing
+        let result = null;
+        let lastErr = null;
+        for (let i = 0; i < 10; i++) {
+          try {
+            result = await chrome.runtime.sendMessage({
+              type: 'START_OFFSCREEN_RECORDING',
+              settings: message.settings
+            });
+            lastErr = null;
+            break;
+          } catch (e) {
+            lastErr = e;
+            await new Promise(r => setTimeout(r, 100));
+          }
+        }
+
+        if (lastErr) {
+          throw new Error('Offscreen document failed to initialize: ' + lastErr.message);
+        }
 
         if (result && result.ok === false) {
           sendResponse(result);
@@ -93,7 +111,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         await chrome.runtime.sendMessage({ type: 'STOP_OFFSCREEN_RECORDING' });
       } catch (_) {}
-      await closeControlsBar();
       sendResponse({ ok: true });
     })();
     return true;
@@ -118,16 +135,32 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Recording ended (from offscreen)
   if (message.type === 'RECORDING_STOPPED' || message.type === 'RECORDING_FAILED') {
     closeControlsBar();
-    // Forward to controls window if still open
+    if (message.type === 'RECORDING_STOPPED' && message.captureId) {
+      openPreviewWindow(message.captureId);
+    }
     return false;
   }
 });
+
+async function openPreviewWindow(captureId) {
+  const url = chrome.runtime.getURL(`preview.html?id=${captureId}`);
+  try {
+    await chrome.windows.create({
+      url,
+      type: 'popup',
+      width: 980,
+      height: 720,
+      focused: true
+    });
+  } catch (err) {
+    await chrome.tabs.create({ url });
+  }
+}
 
 // Clean up if user closes the controls window manually
 chrome.windows.onRemoved.addListener((windowId) => {
   if (windowId === controlsWindowId) {
     controlsWindowId = null;
-    // Optional: stop recording when control bar is closed
     chrome.runtime.sendMessage({ type: 'STOP_OFFSCREEN_RECORDING' }).catch(() => {});
   }
 });
@@ -161,14 +194,18 @@ async function handleRegionCapture(rect, dpr, windowId) {
   ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, sw, sh);
 
   const croppedBlob = await canvas.convertToBlob({ type: 'image/png' });
-  const url = URL.createObjectURL(croppedBlob);
-
+  const captureId = 'shot_' + Date.now();
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  await chrome.downloads.download({
-    url,
-    filename: `screenshot-region-${timestamp}.png`,
-    saveAs: false
+  const filename = `screenshot-region-${timestamp}.png`;
+
+  await saveCapture({
+    id: captureId,
+    type: 'image',
+    blob: croppedBlob,
+    filename: filename,
+    mimeType: 'image/png',
+    createdAt: Date.now()
   });
 
-  setTimeout(() => URL.revokeObjectURL(url), 15000);
+  await openPreviewWindow(captureId);
 }

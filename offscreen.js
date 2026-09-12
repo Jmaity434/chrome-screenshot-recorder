@@ -1,6 +1,8 @@
 let mediaRecorder = null;
 let recordedChunks = [];
 let stream = null;
+let micStream = null;
+let audioCtx = null;
 let currentSettings = {};
 
 function getSupportedMimeType() {
@@ -108,17 +110,60 @@ async function startRecording(settings = {}) {
     } catch (_) {}
   }
 
+  // Handle microphone audio if requested
+  micStream = null;
+  audioCtx = null;
+  if (settings.mic) {
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true
+        }
+      });
+    } catch (micErr) {
+      console.warn('Microphone permission denied or unavailable:', micErr);
+    }
+  }
+
+  // Combine video and audio tracks (with mixing if both mic and system audio are present)
+  let recordStream = stream;
+  const sysAudioTracks = stream.getAudioTracks();
+
+  if (micStream && sysAudioTracks.length > 0) {
+    try {
+      audioCtx = new AudioContext();
+      const dest = audioCtx.createMediaStreamDestination();
+
+      const micSource = audioCtx.createMediaStreamSource(micStream);
+      micSource.connect(dest);
+
+      const sysSource = audioCtx.createMediaStreamSource(new MediaStream([sysAudioTracks[0]]));
+      sysSource.connect(dest);
+
+      recordStream = new MediaStream([
+        videoTrack,
+        dest.stream.getAudioTracks()[0]
+      ]);
+    } catch (mixErr) {
+      console.warn('Audio mixing failed, falling back to mic audio:', mixErr);
+      recordStream = new MediaStream([videoTrack, micStream.getAudioTracks()[0]]);
+    }
+  } else if (micStream) {
+    recordStream = new MediaStream([videoTrack, micStream.getAudioTracks()[0]]);
+  }
+
   recordedChunks = [];
   const mimeType = getSupportedMimeType();
 
   try {
-    mediaRecorder = new MediaRecorder(stream, {
+    mediaRecorder = new MediaRecorder(recordStream, {
       mimeType,
       videoBitsPerSecond: res.bitrate,
       audioBitsPerSecond: 192000
     });
   } catch (e) {
-    mediaRecorder = new MediaRecorder(stream, {
+    mediaRecorder = new MediaRecorder(recordStream, {
       mimeType,
       videoBitsPerSecond: Math.min(res.bitrate, 8000000)
     });
@@ -136,32 +181,45 @@ async function startRecording(settings = {}) {
       }
 
       const blob = new Blob(recordedChunks, { type: 'video/webm' });
-      const url = URL.createObjectURL(blob);
+      const captureId = 'rec_' + Date.now();
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const q = currentSettings.quality || '1080';
+      const filename = `recording-${q}p-${timestamp}.webm`;
 
-      await chrome.downloads.download({
-        url,
-        filename: `recording-${q}p-${timestamp}.webm`,
-        saveAs: false
+      await saveCapture({
+        id: captureId,
+        type: 'video',
+        blob: blob,
+        filename: filename,
+        mimeType: 'video/webm',
+        createdAt: Date.now()
       });
-
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
 
       if (stream) {
         stream.getTracks().forEach(t => t.stop());
         stream = null;
       }
+      if (micStream) {
+        micStream.getTracks().forEach(t => t.stop());
+        micStream = null;
+      }
+      if (audioCtx) {
+        try { await audioCtx.close(); } catch (_) {}
+        audioCtx = null;
+      }
       mediaRecorder = null;
 
-      chrome.runtime.sendMessage({ type: 'RECORDING_STOPPED' });
+      chrome.runtime.sendMessage({
+        type: 'RECORDING_STOPPED',
+        captureId: captureId
+      });
     } catch (err) {
       console.error(err);
       chrome.runtime.sendMessage({ type: 'RECORDING_FAILED', error: err.message });
     }
   };
 
-  stream.getVideoTracks()[0].addEventListener('ended', () => {
+  videoTrack.addEventListener('ended', () => {
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
       mediaRecorder.stop();
     }

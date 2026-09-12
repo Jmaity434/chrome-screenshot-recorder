@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScreenStudio - Preview & Download</title>
+  <link rel="stylesheet" href="preview.css">
+</head>
+<body>
+  <!-- Ambient Liquid Lighting Backdrops -->
+  <div class="ambient-glow orb-1"></div>
+  <div class="ambient-glow orb-2"></div>
+  <div class="ambient-glow orb-3"></div>
+
+  <div class="preview-layout">
+    <!-- Header -->
+    <header class="preview-header">
+      <div class="header-left">
+        <span class="brand-badge">✨ ScreenStudio</span>
+        <h1 class="header-title" id="preview-title">Capture Preview</h1>
+        <span class="type-badge" id="type-badge">Media</span>
+      </div>
+      <div class="header-right">
+        <span class="meta-info" id="meta-info">Loading...</span>
+        <button class="btn-icon" id="btn-close" title="Close Window">✕</button>
+      </div>
+    </header>
+
+    <!-- Main Media Stage -->
+    <main class="media-stage">
+      <div class="media-wrapper" id="media-wrapper">
+        <div class="loading-spinner" id="loading-spinner">
+          <div class="spinner"></div>
+          <span>Loading preview…</span>
+        </div>
+        <video id="preview-video" class="preview-media" controls autoplay playsinline style="display: none;"></video>
+        <img id="preview-image" class="preview-media" alt="Screenshot Preview" style="display: none;" />
+      </div>
+    </main>
+
+    <!-- Floating Action Dock -->
+    <footer class="action-dock">
+      <div class="filename-box">
+        <label for="input-filename" class="filename-label">File Name</label>
+        <input type="text" id="input-filename" class="filename-input" spellcheck="false" />
+      </div>
+
+      <div class="action-buttons">
+        <button id="btn-copy" class="btn-glass" style="display: none;">
+          <span class="btn-icon">📋</span>
+          <span id="copy-text">Copy Image</span>
+        </button>
+
+        <button id="btn-download" class="btn-primary">
+          <span class="btn-icon">⬇</span>
+          <span>Download</span>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <script src="db.js"></script>
+  <script src="preview.js"></script>
+</body>
+</html>

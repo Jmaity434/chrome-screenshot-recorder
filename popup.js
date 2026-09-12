@@ -9,13 +9,50 @@ document.querySelectorAll('.tab').forEach(tab => {
 });
 
 // ===== HELPERS =====
-async function downloadDataUrl(dataUrl, prefix) {
+function isRestrictedUrl(url) {
+  if (!url) return false;
+  return url.startsWith('chrome://') ||
+         url.startsWith('chrome-extension://') ||
+         url.startsWith('edge://') ||
+         url.startsWith('about:') ||
+         url.startsWith('view-source:') ||
+         url.includes('chromewebstore.google.com') ||
+         url.includes('chrome.google.com/webstore');
+}
+
+async function openPreview(captureId) {
+  const url = chrome.runtime.getURL(`preview.html?id=${captureId}`);
+  try {
+    await chrome.windows.create({
+      url,
+      type: 'popup',
+      width: 980,
+      height: 720,
+      focused: true
+    });
+  } catch (err) {
+    await chrome.tabs.create({ url });
+  }
+}
+
+async function previewDataUrl(dataUrl, prefix) {
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  const captureId = 'shot_' + Date.now();
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  await chrome.downloads.download({
-    url: dataUrl,
-    filename: `${prefix}-${timestamp}.png`,
-    saveAs: false
+  const filename = `${prefix}-${timestamp}.png`;
+
+  await saveCapture({
+    id: captureId,
+    type: 'image',
+    blob: blob,
+    filename: filename,
+    mimeType: 'image/png',
+    createdAt: Date.now()
   });
+
+  await openPreview(captureId);
+  window.close();
 }
 
 // ===== SCREENSHOT: Visible Part =====
@@ -24,10 +61,7 @@ document.getElementById('btn-visible').addEventListener('click', async () => {
   try {
     btn.disabled = true;
     const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png', quality: 100 });
-    await downloadDataUrl(dataUrl, 'screenshot-visible');
-    const orig = btn.innerHTML;
-    btn.innerHTML = '<span class="ico">✓</span><span class="lbl">Saved!</span>';
-    setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 1200);
+    await previewDataUrl(dataUrl, 'screenshot-visible');
   } catch (err) {
     console.error(err);
     alert('Could not capture. Try a normal webpage.');
@@ -38,19 +72,31 @@ document.getElementById('btn-visible').addEventListener('click', async () => {
 // ===== SCREENSHOT: Full Page =====
 async function doFullPageCapture() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab || !tab.id) throw new Error('No active tab found.');
+  if (isRestrictedUrl(tab.url)) {
+    throw new Error('Full page capture cannot run on Chrome internal or Web Store pages.');
+  }
+
   const dimResults = await chrome.scripting.executeScript({
     target: { tabId: tab.id },
     func: () => ({
       height: Math.max(document.body.scrollHeight, document.documentElement.scrollHeight),
       viewportHeight: window.innerHeight,
-      viewportWidth: window.innerWidth
+      viewportWidth: window.innerWidth,
+      dpr: window.devicePixelRatio || 1
     })
   });
-  const { height, viewportHeight, viewportWidth } = dimResults[0].result;
+
+  const { height, viewportHeight, viewportWidth, dpr } = dimResults[0].result;
+  const scale = dpr || 1;
   const maxHeight = Math.min(height, 12000);
-  const canvas = new OffscreenCanvas(viewportWidth, maxHeight);
+  const canvasWidth = Math.round(viewportWidth * scale);
+  const canvasHeight = Math.round(maxHeight * scale);
+
+  const canvas = new OffscreenCanvas(canvasWidth, canvasHeight);
   const ctx = canvas.getContext('2d');
   let y = 0;
+
   while (y < maxHeight) {
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
@@ -58,18 +104,25 @@ async function doFullPageCapture() {
       args: [y]
     });
     await new Promise(r => setTimeout(r, 220));
+
     const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png', quality: 100 });
     const img = await createImageBitmap(await (await fetch(dataUrl)).blob());
     const drawHeight = Math.min(viewportHeight, maxHeight - y);
-    ctx.drawImage(img, 0, 0, viewportWidth, drawHeight, 0, y, viewportWidth, drawHeight);
+
+    const sWidth = Math.min(img.width, canvasWidth);
+    const sHeight = Math.min(img.height, Math.round(drawHeight * scale));
+    const dy = Math.round(y * scale);
+
+    ctx.drawImage(img, 0, 0, sWidth, sHeight, 0, dy, sWidth, sHeight);
     y += viewportHeight;
   }
+
   await chrome.scripting.executeScript({
     target: { tabId: tab.id },
     func: () => window.scrollTo(0, 0)
   });
-  const blob = await canvas.convertToBlob({ type: 'image/png' });
-  return URL.createObjectURL(blob);
+
+  return await canvas.convertToBlob({ type: 'image/png' });
 }
 
 document.getElementById('btn-fullpage').addEventListener('click', async () => {
@@ -78,18 +131,22 @@ document.getElementById('btn-fullpage').addEventListener('click', async () => {
   try {
     btn.disabled = true;
     btn.innerHTML = '<span class="ico">⏳</span><span class="lbl">Capturing…</span>';
-    const objectUrl = await doFullPageCapture();
+    const blob = await doFullPageCapture();
+    const captureId = 'shot_' + Date.now();
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    await chrome.downloads.download({
-      url: objectUrl,
+    await saveCapture({
+      id: captureId,
+      type: 'image',
+      blob: blob,
       filename: `screenshot-fullpage-${timestamp}.png`,
-      saveAs: false
+      mimeType: 'image/png',
+      createdAt: Date.now()
     });
-    btn.innerHTML = '<span class="ico">✓</span><span class="lbl">Saved!</span>';
-    setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 1200);
+    await openPreview(captureId);
+    window.close();
   } catch (err) {
     console.error(err);
-    alert('Full page capture failed.');
+    alert(err.message || 'Full page capture failed.');
     btn.innerHTML = orig;
     btn.disabled = false;
   }
@@ -99,6 +156,11 @@ document.getElementById('btn-fullpage').addEventListener('click', async () => {
 document.getElementById('btn-region').addEventListener('click', async () => {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab || !tab.id) return;
+    if (isRestrictedUrl(tab.url)) {
+      alert('Selected Area cannot run on Chrome internal or Web Store pages.');
+      return;
+    }
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       files: ['content-script.js']
@@ -106,7 +168,7 @@ document.getElementById('btn-region').addEventListener('click', async () => {
     window.close();
   } catch (err) {
     console.error(err);
-    alert('Could not start region selection.');
+    alert('Could not start region selection: ' + (err.message || 'Unknown error'));
   }
 });
 
@@ -121,9 +183,7 @@ document.getElementById('btn-delay').addEventListener('click', async () => {
       await new Promise(r => setTimeout(r, 1000));
     }
     const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png', quality: 100 });
-    await downloadDataUrl(dataUrl, 'screenshot-delay');
-    btn.textContent = '✓ Saved!';
-    setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 1000);
+    await previewDataUrl(dataUrl, 'screenshot-delay');
   } catch (err) {
     console.error(err);
     btn.innerHTML = orig;
@@ -144,16 +204,23 @@ document.getElementById('btn-desktop-shot').addEventListener('click', async () =
     const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
     canvas.getContext('2d').drawImage(bitmap, 0, 0);
     const blob = await canvas.convertToBlob({ type: 'image/png' });
-    const url = URL.createObjectURL(blob);
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    await chrome.downloads.download({
-      url,
-      filename: `screenshot-screen-${timestamp}.png`,
-      saveAs: false
-    });
+
     track.stop();
     stream.getTracks().forEach(t => t.stop());
-    setTimeout(() => URL.revokeObjectURL(url), 3000);
+
+    const captureId = 'shot_' + Date.now();
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    await saveCapture({
+      id: captureId,
+      type: 'image',
+      blob: blob,
+      filename: `screenshot-screen-${timestamp}.png`,
+      mimeType: 'image/png',
+      createdAt: Date.now()
+    });
+
+    await openPreview(captureId);
+    window.close();
   } catch (err) {
     if (err.name !== 'NotAllowedError') alert('Could not capture entire screen.');
   }
@@ -182,77 +249,23 @@ document.getElementById('btn-start-record').addEventListener('click', async () =
   const settings = { mode: selectedMode, quality, mic, systemAudio };
 
   try {
-    // Try offscreen first (no visible window)
     const result = await chrome.runtime.sendMessage({
       type: 'START_RECORDING',
       settings
     });
 
     if (result && result.ok === false) {
-      throw new Error(result.error || 'Offscreen failed');
+      throw new Error(result.error || 'Failed to start recording');
     }
 
-    // Success - close popup, recording runs in background
+    // Success - close popup, recording runs via background offscreen document
     window.close();
   } catch (err) {
-    console.warn('Offscreen path failed, using direct fallback:', err);
-    // Fallback: direct in popup (Chrome share bar will show)
-    try {
-      await startDirectRecording(settings);
-      // Keep popup open briefly is not needed; user stops via Chrome bar
-      window.close();
-    } catch (e2) {
-      console.error(e2);
-      alert('Could not start recording. Please allow screen sharing.');
-      btn.disabled = false;
-      btn.textContent = '● Start Recording';
-    }
+    console.error('Recording start failed:', err);
+    let msg = 'Could not start recording.';
+    if (err.message) msg += ' ' + err.message;
+    alert(msg);
+    btn.disabled = false;
+    btn.textContent = '● Start Recording';
   }
 });
-
-async function startDirectRecording(settings) {
-  const resMap = {
-    '720':  { w: 1280, h: 720,  br: 6000000 },
-    '1080': { w: 1920, h: 1080, br: 12000000 },
-    '1440': { w: 2560, h: 1440, br: 18000000 }
-  };
-  const res = resMap[settings.quality] || resMap['1080'];
-
-  const stream = await navigator.mediaDevices.getDisplayMedia({
-    video: {
-      width: { ideal: res.w },
-      height: { ideal: res.h },
-      frameRate: { ideal: 30 }
-    },
-    audio: settings.systemAudio !== false,
-    preferCurrentTab: settings.mode === 'browser'
-  });
-
-  const mimeType = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8', 'video/webm']
-    .find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
-
-  const chunks = [];
-  const recorder = new MediaRecorder(stream, {
-    mimeType,
-    videoBitsPerSecond: res.br
-  });
-
-  recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
-  recorder.onstop = async () => {
-    const blob = new Blob(chunks, { type: 'video/webm' });
-    const url = URL.createObjectURL(blob);
-    const ts = new Date().toISOString().replace(/[:.]/g, '-');
-    await chrome.downloads.download({
-      url,
-      filename: `recording-${settings.quality}p-${ts}.webm`,
-      saveAs: false
-    });
-    stream.getTracks().forEach(t => t.stop());
-  };
-
-  stream.getVideoTracks()[0].onended = () => {
-    if (recorder.state === 'recording') recorder.stop();
-  };
-
-  recorder.start(1000);
-}
