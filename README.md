@@ -6,44 +6,49 @@ A clean, lightweight Chrome extension for high-quality screenshots and screen re
 
 ## Features
 
-- **Screenshot** – Capture the visible tab as a high-quality PNG
-- **Screen Recording** – Record any tab, window, or entire screen at **1080p** (1920×1080)
-- **System audio** support (when available)
-- Instant download – files are saved directly to your Downloads folder
-- Zero setup – no sign-up, no login, no cloud
+### Screenshot
+- **Visible Area** – Capture exactly what you see on screen
+- **Full Page** – Automatically scrolls and stitches the entire page
+- **Select Area** – Draw a box to capture only a specific region
+
+### Screen Recording
+- Record any Chrome tab, window, or entire screen at **1080p**
+- System audio support
+- **Persistent recording window** – you can freely switch tabs and work while recording continues
+- Instant download as `.webm`
 
 ## How to Install (Developer Mode)
 
 1. Download or clone this repository
-2. Open Chrome and go to `chrome://extensions/`
+2. Open Chrome → `chrome://extensions/`
 3. Enable **Developer mode** (top right)
 4. Click **Load unpacked**
-5. Select the folder of this project
-6. Done! The extension icon will appear in your toolbar
+5. Select the project folder (the one that contains `manifest.json`)
+6. Done!
 
 ## How to Use
 
-### Take a Screenshot
-1. Open any webpage
-2. Click the extension icon
-3. Press **Capture Visible Tab**
-4. The PNG is automatically downloaded
+### Screenshot
+1. Click the extension icon
+2. Choose one of the three options:
+   - **Visible Area**
+   - **Full Page**
+   - **Select Area** (then drag on the page)
+3. The PNG is automatically downloaded
 
-### Record Screen / Tab
+### Screen Recording
 1. Click the extension icon
 2. Press **Start Recording**
-3. Choose what to share (Chrome tab / Window / Entire Screen)
-4. Recording starts at 1080p
-5. Press **Stop Recording** when finished
-6. The `.webm` video is downloaded automatically
-
-> **Tip:** Keep the extension popup open while recording, or stop sharing from the Chrome sharing bar.
+3. A small floating window will open
+4. Choose what to share (tab / window / screen)
+5. You can now freely switch tabs and work — recording continues
+6. Click **Stop & Save** in the small window when finished
 
 ## Technical Notes
 
 - Manifest V3
-- Uses `chrome.tabs.captureVisibleTab` for screenshots
-- Uses `getDisplayMedia` + `MediaRecorder` (VP9) for recording
+- Screenshot: `chrome.tabs.captureVisibleTab` + OffscreenCanvas cropping/stitching
+- Recording: `getDisplayMedia` + MediaRecorder (VP9) inside a persistent popup window
 - Target quality: 1920×1080 @ ~8 Mbps
 - No external servers, no tracking, no accounts
 
@@ -52,9 +57,9 @@ A clean, lightweight Chrome extension for high-quality screenshots and screen re
 ```
 chrome-screenshot-recorder/
 ├── manifest.json
-├── popup.html
-├── popup.css
-├── popup.js
+├── popup.html / popup.css / popup.js
+├── recorder.html / recorder.js      ← persistent recording window
+├── content-script.js               ← region selection overlay
 ├── background.js
 └── README.md
 ```
