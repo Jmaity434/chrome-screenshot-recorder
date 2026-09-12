@@ -133,14 +133,14 @@ btnRegion.addEventListener('click', async () => {
 });
 
 // ========== RECORDING ==========
-// Opens a small persistent window so recording continues even if you switch tabs
+// Opens a persistent window so recording continues even if you switch tabs
 btnStartRecord.addEventListener('click', async () => {
   try {
     await chrome.windows.create({
       url: chrome.runtime.getURL('recorder.html'),
       type: 'popup',
-      width: 280,
-      height: 200,
+      width: 320,
+      height: 240,
       focused: true
     });
 
