@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Recording</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      user-select: none;
+    }
+    .bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.8);
+      cursor: grab;
+    }
+    .bar:active { cursor: grabbing; }
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);
+      flex-shrink: 0;
+    }
+    .dot.paused {
+      background: #f59e0b;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+      animation: none;
+    }
+    .dot.recording {
+      animation: pulse 1.2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    #timer {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1e293b;
+      min-width: 48px;
+      letter-spacing: 0.5px;
+      font-variant-numeric: tabular-nums;
+    }
+    .btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.15s ease;
+      background: rgba(0,0,0,0.06);
+      color: #334155;
+    }
+    .btn:hover {
+      background: rgba(0,0,0,0.1);
+      transform: scale(1.05);
+    }
+    .btn.stop {
+      background: rgba(239, 68, 68, 0.12);
+      color: #dc2626;
+    }
+    .btn.stop:hover {
+      background: rgba(239, 68, 68, 0.22);
+    }
+    .btn:disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="bar" id="bar">
+    <div class="dot recording" id="dot"></div>
+    <div id="timer">00:00</div>
+    <button class="btn" id="btn-pause" title="Pause / Resume">⏸</button>
+    <button class="btn stop" id="btn-stop" title="Stop & Save">⏹</button>
+  </div>
+  <script src="controls.js"></script>
+</body>
+</html>
