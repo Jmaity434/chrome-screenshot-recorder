@@ -1,14 +1,15 @@
 {
   "manifest_version": 3,
   "name": "1080p Screenshot & Screen Recorder",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Take high-quality 1080p screenshots and record your browser tabs or screen. No account needed — works instantly after install.",
   "permissions": [
     "activeTab",
     "tabs",
     "scripting",
     "downloads",
-    "storage"
+    "storage",
+    "windows"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -19,5 +20,11 @@
   },
   "background": {
     "service_worker": "background.js"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["content-script.js", "selection.css"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }
