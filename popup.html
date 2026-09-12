@@ -4,148 +4,76 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Screen Capture</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body {
-      width: 360px;
-      background: linear-gradient(145deg, #f0f4f8 0%, #e2e8f0 50%, #f8fafc 100%);
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
-    }
-    .glass {
-      background: rgba(255, 255, 255, 0.55);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      box-shadow:
-        0 8px 32px rgba(31, 38, 135, 0.1),
-        inset 0 1px 0 rgba(255, 255, 255, 0.7),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.03);
-    }
-    .glass-card {
-      background: rgba(255, 255, 255, 0.5);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.55);
-      transition: all 0.2s ease;
-    }
-    .glass-card:hover {
-      background: rgba(255, 255, 255, 0.75);
-      border-color: rgba(201, 162, 39, 0.45);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-    }
-    .glass-card.selected {
-      background: rgba(201, 162, 39, 0.12);
-      border-color: rgba(201, 162, 39, 0.5);
-      box-shadow: 0 0 0 1px rgba(201, 162, 39, 0.2);
-    }
-    .tab-active {
-      background: rgba(255, 255, 255, 0.85);
-      color: #1e293b;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
-    .start-btn {
-      background: linear-gradient(145deg, #e8c84a, #d4af37 45%, #b8960c);
-      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.3), inset 0 1px 0 rgba(255,255,255,0.4);
-    }
-    .start-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(212, 175, 55, 0.4), inset 0 1px 0 rgba(255,255,255,0.5);
-    }
-    .panel { display: none; }
-    .panel.active { display: block; }
-  </style>
+  <link rel="stylesheet" href="popup.css">
 </head>
-<body class="p-3">
-  <div class="glass rounded-2xl p-4">
+<body>
+  <div class="glass-wrap">
 
-    <!-- Tabs -->
-    <div class="flex gap-1.5 mb-4 p-1 rounded-xl bg-white/30">
-      <button class="tab tab-active flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition" data-tab="screenshot">
-        <span>📷</span> Screenshot
-      </button>
-      <button class="tab flex-1 py-2 rounded-lg text-sm font-medium text-slate-500 flex items-center justify-center gap-1.5 transition hover:text-slate-700" data-tab="record">
-        <span>🎥</span> Record
-      </button>
+    <div class="tabs">
+      <button class="tab active" data-tab="screenshot">📷 Screenshot</button>
+      <button class="tab" data-tab="record">🎥 Record</button>
     </div>
 
-    <!-- SCREENSHOT PANEL -->
     <div id="panel-screenshot" class="panel active">
-      <div class="grid grid-cols-3 gap-2 mb-3">
-        <button id="btn-visible" class="glass-card rounded-xl py-3.5 px-2 flex flex-col items-center gap-1.5 cursor-pointer">
-          <span class="text-xl">🖥️</span>
-          <span class="text-[11px] font-medium text-slate-700">Visible Part</span>
+      <div class="grid-3">
+        <button id="btn-visible" class="card">
+          <span class="ico">🖥️</span>
+          <span class="lbl">Visible Part</span>
         </button>
-        <button id="btn-fullpage" class="glass-card rounded-xl py-3.5 px-2 flex flex-col items-center gap-1.5 cursor-pointer">
-          <span class="text-xl">📄</span>
-          <span class="text-[11px] font-medium text-slate-700">Full Page</span>
+        <button id="btn-fullpage" class="card">
+          <span class="ico">📄</span>
+          <span class="lbl">Full Page</span>
         </button>
-        <button id="btn-region" class="glass-card rounded-xl py-3.5 px-2 flex flex-col items-center gap-1.5 cursor-pointer">
-          <span class="text-xl">✂️</span>
-          <span class="text-[11px] font-medium text-slate-700">Selected Area</span>
-        </button>
-      </div>
-
-      <div class="space-y-1.5 mb-3">
-        <button id="btn-delay" class="glass-card w-full rounded-xl py-2.5 px-3.5 flex items-center gap-2.5 text-sm text-slate-700 cursor-pointer text-left">
-          <span>⏱️</span>
-          <span>Visible Part after Delay</span>
-        </button>
-        <button id="btn-desktop-shot" class="glass-card w-full rounded-xl py-2.5 px-3.5 flex items-center gap-2.5 text-sm text-slate-700 cursor-pointer text-left">
-          <span>🖥️</span>
-          <span>Entire Screen</span>
+        <button id="btn-region" class="card">
+          <span class="ico">✂️</span>
+          <span class="lbl">Selected Area</span>
         </button>
       </div>
 
-      <p class="text-center text-[11px] text-slate-400">Saved to Downloads • No account needed</p>
+      <div class="list">
+        <button id="btn-delay" class="row">⏱️ Visible Part after Delay</button>
+        <button id="btn-desktop-shot" class="row">🖥️ Entire Screen</button>
+      </div>
+
+      <p class="note">Saved to Downloads • No account needed</p>
     </div>
 
-    <!-- RECORD PANEL -->
     <div id="panel-record" class="panel">
-      <div class="grid grid-cols-2 gap-2 mb-3">
-        <button class="rec-mode glass-card selected rounded-xl py-3.5 px-2 flex flex-col items-center gap-1.5 cursor-pointer" data-mode="monitor">
-          <span class="text-xl">🖥️</span>
-          <span class="text-[11px] font-medium text-slate-700">Desktop</span>
+      <div class="grid-2">
+        <button class="card rec-mode selected" data-mode="monitor">
+          <span class="ico">🖥️</span>
+          <span class="lbl">Desktop</span>
         </button>
-        <button class="rec-mode glass-card rounded-xl py-3.5 px-2 flex flex-col items-center gap-1.5 cursor-pointer" data-mode="browser">
-          <span class="text-xl">🌐</span>
-          <span class="text-[11px] font-medium text-slate-700">This Tab</span>
+        <button class="card rec-mode" data-mode="browser">
+          <span class="ico">🌐</span>
+          <span class="lbl">This Tab</span>
         </button>
-        <button class="rec-mode glass-card rounded-xl py-3.5 px-2 flex flex-col items-center gap-1.5 cursor-pointer" data-mode="window">
-          <span class="text-xl">🗔</span>
-          <span class="text-[11px] font-medium text-slate-700">Window</span>
+        <button class="card rec-mode" data-mode="window">
+          <span class="ico">🗔</span>
+          <span class="lbl">Window</span>
         </button>
-        <button class="glass-card rounded-xl py-3.5 px-2 flex flex-col items-center gap-1.5 opacity-40 cursor-not-allowed" disabled>
-          <span class="text-xl">📷</span>
-          <span class="text-[11px] font-medium text-slate-500">Camera</span>
+        <button class="card disabled" disabled>
+          <span class="ico">📷</span>
+          <span class="lbl">Camera</span>
         </button>
       </div>
 
-      <div class="flex items-center gap-4 mb-3 px-1">
-        <label class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
-          <input type="checkbox" id="toggle-mic" checked class="accent-amber-500 w-3.5 h-3.5">
-          🎤 Mic
-        </label>
-        <label class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
-          <input type="checkbox" id="toggle-system-audio" checked class="accent-amber-500 w-3.5 h-3.5">
-          🔊 System
-        </label>
+      <div class="toggles">
+        <label><input type="checkbox" id="toggle-mic" checked> 🎤 Mic</label>
+        <label><input type="checkbox" id="toggle-system-audio" checked> 🔊 System</label>
       </div>
 
-      <div class="flex items-center gap-2 mb-3">
-        <select id="quality-select" class="flex-1 glass-card rounded-xl py-2 px-3 text-sm text-slate-700 outline-none cursor-pointer">
+      <div class="quality">
+        <select id="quality-select">
           <option value="1080" selected>1080p</option>
           <option value="720">720p</option>
           <option value="1440">1440p</option>
         </select>
-        <span class="text-[11px] font-semibold text-amber-700 bg-amber-100/80 px-2.5 py-1.5 rounded-lg border border-amber-200/60">WebM</span>
+        <span class="badge">WebM</span>
       </div>
 
-      <button id="btn-start-record" class="start-btn w-full py-3 rounded-xl text-sm font-semibold text-amber-950 transition">
-        ● Start Recording
-      </button>
-
-      <p class="text-center text-[11px] text-slate-400 mt-3">Recording starts immediately • No extra window</p>
+      <button id="btn-start-record" class="start-btn">● Start Recording</button>
+      <p class="note">Recording starts immediately • No extra window</p>
     </div>
 
   </div>
