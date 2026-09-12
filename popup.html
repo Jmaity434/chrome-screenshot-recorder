@@ -4,110 +4,148 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Screen Capture</title>
-  <link rel="stylesheet" href="popup.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      width: 360px;
+      background: linear-gradient(145deg, #f0f4f8 0%, #e2e8f0 50%, #f8fafc 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      box-shadow:
+        0 8px 32px rgba(31, 38, 135, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.03);
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      transition: all 0.2s ease;
+    }
+    .glass-card:hover {
+      background: rgba(255, 255, 255, 0.75);
+      border-color: rgba(201, 162, 39, 0.45);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    }
+    .glass-card.selected {
+      background: rgba(201, 162, 39, 0.12);
+      border-color: rgba(201, 162, 39, 0.5);
+      box-shadow: 0 0 0 1px rgba(201, 162, 39, 0.2);
+    }
+    .tab-active {
+      background: rgba(255, 255, 255, 0.85);
+      color: #1e293b;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .start-btn {
+      background: linear-gradient(145deg, #e8c84a, #d4af37 45%, #b8960c);
+      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.3), inset 0 1px 0 rgba(255,255,255,0.4);
+    }
+    .start-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(212, 175, 55, 0.4), inset 0 1px 0 rgba(255,255,255,0.5);
+    }
+    .panel { display: none; }
+    .panel.active { display: block; }
+  </style>
 </head>
-<body>
-  <div class="container">
+<body class="p-3">
+  <div class="glass rounded-2xl p-4">
 
     <!-- Tabs -->
-    <div class="tabs">
-      <button class="tab active" data-tab="screenshot">
-        <span class="tab-icon">📷</span> Screenshot
+    <div class="flex gap-1.5 mb-4 p-1 rounded-xl bg-white/30">
+      <button class="tab tab-active flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition" data-tab="screenshot">
+        <span>📷</span> Screenshot
       </button>
-      <button class="tab" data-tab="record">
-        <span class="tab-icon">🎥</span> Record
+      <button class="tab flex-1 py-2 rounded-lg text-sm font-medium text-slate-500 flex items-center justify-center gap-1.5 transition hover:text-slate-700" data-tab="record">
+        <span>🎥</span> Record
       </button>
     </div>
 
-    <!-- ========== SCREENSHOT PANEL ========== -->
+    <!-- SCREENSHOT PANEL -->
     <div id="panel-screenshot" class="panel active">
-
-      <div class="option-grid">
-        <button class="option-card" id="btn-visible">
-          <div class="option-icon">🖥️</div>
-          <div class="option-label">Visible Part</div>
+      <div class="grid grid-cols-3 gap-2 mb-3">
+        <button id="btn-visible" class="glass-card rounded-xl py-3.5 px-2 flex flex-col items-center gap-1.5 cursor-pointer">
+          <span class="text-xl">🖥️</span>
+          <span class="text-[11px] font-medium text-slate-700">Visible Part</span>
         </button>
-
-        <button class="option-card" id="btn-fullpage">
-          <div class="option-icon">📄</div>
-          <div class="option-label">Full Page</div>
+        <button id="btn-fullpage" class="glass-card rounded-xl py-3.5 px-2 flex flex-col items-center gap-1.5 cursor-pointer">
+          <span class="text-xl">📄</span>
+          <span class="text-[11px] font-medium text-slate-700">Full Page</span>
         </button>
-
-        <button class="option-card" id="btn-region">
-          <div class="option-icon">✂️</div>
-          <div class="option-label">Selected Area</div>
+        <button id="btn-region" class="glass-card rounded-xl py-3.5 px-2 flex flex-col items-center gap-1.5 cursor-pointer">
+          <span class="text-xl">✂️</span>
+          <span class="text-[11px] font-medium text-slate-700">Selected Area</span>
         </button>
       </div>
 
-      <div class="option-list">
-        <button class="option-row" id="btn-delay">
-          <span class="row-icon">⏱️</span>
+      <div class="space-y-1.5 mb-3">
+        <button id="btn-delay" class="glass-card w-full rounded-xl py-2.5 px-3.5 flex items-center gap-2.5 text-sm text-slate-700 cursor-pointer text-left">
+          <span>⏱️</span>
           <span>Visible Part after Delay</span>
         </button>
-
-        <button class="option-row" id="btn-desktop-shot">
-          <span class="row-icon">🖥️</span>
+        <button id="btn-desktop-shot" class="glass-card w-full rounded-xl py-2.5 px-3.5 flex items-center gap-2.5 text-sm text-slate-700 cursor-pointer text-left">
+          <span>🖥️</span>
           <span>Entire Screen</span>
         </button>
       </div>
 
-      <div class="footer-note">
-        Saved to Downloads • No account needed
-      </div>
+      <p class="text-center text-[11px] text-slate-400">Saved to Downloads • No account needed</p>
     </div>
 
-    <!-- ========== RECORD PANEL ========== -->
+    <!-- RECORD PANEL -->
     <div id="panel-record" class="panel">
-
-      <div class="option-grid">
-        <button class="option-card selected" id="rec-desktop" data-mode="monitor">
-          <div class="option-icon">🖥️</div>
-          <div class="option-label">Desktop</div>
+      <div class="grid grid-cols-2 gap-2 mb-3">
+        <button class="rec-mode glass-card selected rounded-xl py-3.5 px-2 flex flex-col items-center gap-1.5 cursor-pointer" data-mode="monitor">
+          <span class="text-xl">🖥️</span>
+          <span class="text-[11px] font-medium text-slate-700">Desktop</span>
         </button>
-
-        <button class="option-card" id="rec-tab" data-mode="browser">
-          <div class="option-icon">🌐</div>
-          <div class="option-label">This Tab</div>
+        <button class="rec-mode glass-card rounded-xl py-3.5 px-2 flex flex-col items-center gap-1.5 cursor-pointer" data-mode="browser">
+          <span class="text-xl">🌐</span>
+          <span class="text-[11px] font-medium text-slate-700">This Tab</span>
         </button>
-
-        <button class="option-card" id="rec-window" data-mode="window">
-          <div class="option-icon">🗔</div>
-          <div class="option-label">Window</div>
+        <button class="rec-mode glass-card rounded-xl py-3.5 px-2 flex flex-col items-center gap-1.5 cursor-pointer" data-mode="window">
+          <span class="text-xl">🗔</span>
+          <span class="text-[11px] font-medium text-slate-700">Window</span>
         </button>
-
-        <button class="option-card disabled" id="rec-camera" title="Coming soon">
-          <div class="option-icon">📷</div>
-          <div class="option-label">Camera</div>
+        <button class="glass-card rounded-xl py-3.5 px-2 flex flex-col items-center gap-1.5 opacity-40 cursor-not-allowed" disabled>
+          <span class="text-xl">📷</span>
+          <span class="text-[11px] font-medium text-slate-500">Camera</span>
         </button>
       </div>
 
-      <div class="controls-row">
-        <label class="toggle">
-          <input type="checkbox" id="toggle-mic" checked>
-          <span class="toggle-label">🎤 Mic</span>
+      <div class="flex items-center gap-4 mb-3 px-1">
+        <label class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
+          <input type="checkbox" id="toggle-mic" checked class="accent-amber-500 w-3.5 h-3.5">
+          🎤 Mic
         </label>
-        <label class="toggle">
-          <input type="checkbox" id="toggle-system-audio" checked>
-          <span class="toggle-label">🔊 System</span>
+        <label class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
+          <input type="checkbox" id="toggle-system-audio" checked class="accent-amber-500 w-3.5 h-3.5">
+          🔊 System
         </label>
       </div>
 
-      <div class="quality-row">
-        <select id="quality-select">
+      <div class="flex items-center gap-2 mb-3">
+        <select id="quality-select" class="flex-1 glass-card rounded-xl py-2 px-3 text-sm text-slate-700 outline-none cursor-pointer">
           <option value="1080" selected>1080p</option>
           <option value="720">720p</option>
           <option value="1440">1440p</option>
         </select>
-        <span class="format-badge">WebM</span>
+        <span class="text-[11px] font-semibold text-amber-700 bg-amber-100/80 px-2.5 py-1.5 rounded-lg border border-amber-200/60">WebM</span>
       </div>
 
-      <button id="btn-start-record" class="start-btn">
+      <button id="btn-start-record" class="start-btn w-full py-3 rounded-xl text-sm font-semibold text-amber-950 transition">
         ● Start Recording
       </button>
 
-      <div class="footer-note">
-        Recording continues even if you switch tabs
-      </div>
+      <p class="text-center text-[11px] text-slate-400 mt-3">Recording starts immediately • No extra window</p>
     </div>
 
   </div>
