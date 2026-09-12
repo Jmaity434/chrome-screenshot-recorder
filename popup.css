@@ -6,43 +6,65 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
-  width: 340px;
-  background: transparent;
+  width: 352px;
+  background: #0a0a0b;
   color: #f5f5f7;
   overflow: hidden;
 }
 
 .container {
-  margin: 10px;
-  padding: 22px 20px 18px;
-  border-radius: 20px;
-  background: rgba(20, 20, 22, 0.72);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  margin: 12px;
+  padding: 24px 22px 20px;
+  border-radius: 22px;
+  background: linear-gradient(
+    165deg,
+    rgba(40, 40, 45, 0.82) 0%,
+    rgba(22, 22, 26, 0.88) 50%,
+    rgba(18, 18, 22, 0.92) 100%
+  );
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    0 12px 40px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 1px 1px rgba(255, 255, 255, 0.12),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.25);
   position: relative;
   overflow: hidden;
 }
 
-/* Subtle top light reflection */
+/* Top light streak (liquid glass reflection) */
 .container::before {
   content: '';
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 10%;
+  right: 10%;
   height: 1px;
   background: linear-gradient(
     90deg,
-    transparent,
-    rgba(255, 255, 255, 0.35),
-    transparent
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 100%
   );
   pointer-events: none;
+  z-index: 2;
+}
+
+/* Soft inner glow */
+.container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 22px;
+  background: radial-gradient(
+    ellipse 80% 50% at 50% -20%,
+    rgba(255, 255, 255, 0.09),
+    transparent 60%
+  );
+  pointer-events: none;
+  z-index: 1;
 }
 
 header {
@@ -51,107 +73,119 @@ header {
   padding-bottom: 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   position: relative;
+  z-index: 3;
 }
 
 h1 {
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 600;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.3px;
   color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .subtitle {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.5);
   margin-top: 5px;
   font-weight: 400;
 }
 
 .section {
   margin-bottom: 18px;
+  position: relative;
+  z-index: 3;
 }
 
 h2 {
   font-size: 11px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
-  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.9px;
 }
 
 .btn {
   width: 100%;
-  padding: 12px 16px;
+  padding: 13px 16px;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  transition: all 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
-  margin-bottom: 8px;
+  gap: 9px;
+  transition: all 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  margin-bottom: 9px;
   position: relative;
   overflow: hidden;
 }
 
 .btn:disabled {
-  opacity: 0.4;
+  opacity: 0.38;
   cursor: not-allowed;
   transform: none !important;
 }
 
-/* Primary – Liquid Gold Glass */
+/* Primary – Liquid Gold */
 .btn.primary {
   background: linear-gradient(
-    135deg,
-    rgba(212, 175, 55, 0.85),
-    rgba(184, 150, 12, 0.9)
+    145deg,
+    #e8c84a 0%,
+    #d4af37 40%,
+    #b8960c 100%
   );
-  color: #1a1a1a;
-  border: 1px solid rgba(255, 220, 120, 0.4);
+  color: #1a1400;
+  border: 1px solid rgba(255, 230, 150, 0.45);
   box-shadow:
-    0 4px 16px rgba(212, 175, 55, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    0 6px 20px rgba(212, 175, 55, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15);
 }
 
 .btn.primary:hover:not(:disabled) {
   background: linear-gradient(
-    135deg,
-    rgba(230, 195, 70, 0.95),
-    rgba(200, 165, 20, 0.95)
+    145deg,
+    #f0d45a 0%,
+    #e0c04a 40%,
+    #c9a40f 100%
   );
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   box-shadow:
-    0 6px 20px rgba(212, 175, 55, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    0 8px 28px rgba(212, 175, 55, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .btn.primary:active:not(:disabled) {
   transform: translateY(0);
+  box-shadow:
+    0 3px 12px rgba(212, 175, 55, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-/* Secondary – Frosted Glass */
+/* Secondary – True Frosted Glass */
 .btn.secondary {
-  background: rgba(255, 255, 255, 0.07);
-  color: #f0f0f0;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .btn.secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(212, 175, 55, 0.45);
+  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(212, 175, 55, 0.5);
   color: #ffffff;
+  transform: translateY(-1px);
   box-shadow:
-    0 2px 12px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    0 4px 16px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .icon {
@@ -160,22 +194,24 @@ h2 {
 }
 
 .hint {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
-  line-height: 1.5;
-  margin-top: 6px;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.38);
+  line-height: 1.55;
+  margin-top: 7px;
   padding: 0 2px;
 }
 
 footer {
   text-align: center;
-  margin-top: 6px;
-  padding-top: 14px;
+  margin-top: 8px;
+  padding-top: 15px;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
+  position: relative;
+  z-index: 3;
 }
 
 footer p {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.35);
-  letter-spacing: 0.2px;
+  color: rgba(255, 255, 255, 0.32);
+  letter-spacing: 0.3px;
 }
