@@ -1,6 +1,7 @@
 let mediaRecorder = null;
 let recordedChunks = [];
 let stream = null;
+let currentSettings = {};
 
 function getSupportedMimeType() {
   const types = [
@@ -27,10 +28,12 @@ function getResolution(quality) {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === 'START_OFFSCREEN_RECORDING') {
-    startRecording(msg.settings).then(() => sendResponse({ ok: true })).catch(err => {
-      console.error(err);
-      sendResponse({ ok: false, error: err.message });
-    });
+    startRecording(msg.settings)
+      .then(() => sendResponse({ ok: true }))
+      .catch(err => {
+        console.error(err);
+        sendResponse({ ok: false, error: err.message });
+      });
     return true;
   }
 
@@ -41,14 +44,32 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     sendResponse({ ok: true });
     return true;
   }
+
+  if (msg.type === 'PAUSE_OFFSCREEN_RECORDING') {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.pause();
+    }
+    sendResponse({ ok: true });
+    return true;
+  }
+
+  if (msg.type === 'RESUME_OFFSCREEN_RECORDING') {
+    if (mediaRecorder && mediaRecorder.state === 'paused') {
+      mediaRecorder.resume();
+    }
+    sendResponse({ ok: true });
+    return true;
+  }
 });
 
 async function startRecording(settings = {}) {
   if (mediaRecorder && mediaRecorder.state === 'recording') return;
 
+  currentSettings = settings;
   const res = getResolution(settings.quality || '1080');
   const mode = settings.mode || 'monitor';
 
+  // selfBrowserSurface: 'exclude' → control bar window will NOT appear in the video
   const options = {
     video: {
       displaySurface: mode === 'browser' ? 'browser' : (mode === 'window' ? 'window' : 'monitor'),
@@ -71,7 +92,8 @@ async function startRecording(settings = {}) {
         height: { ideal: res.h },
         frameRate: { ideal: 30 }
       },
-      audio: false
+      audio: false,
+      selfBrowserSurface: 'exclude'
     });
   }
 
@@ -116,7 +138,7 @@ async function startRecording(settings = {}) {
       const blob = new Blob(recordedChunks, { type: 'video/webm' });
       const url = URL.createObjectURL(blob);
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const q = settings.quality || '1080';
+      const q = currentSettings.quality || '1080';
 
       await chrome.downloads.download({
         url,
@@ -130,6 +152,7 @@ async function startRecording(settings = {}) {
         stream.getTracks().forEach(t => t.stop());
         stream = null;
       }
+      mediaRecorder = null;
 
       chrome.runtime.sendMessage({ type: 'RECORDING_STOPPED' });
     } catch (err) {
@@ -139,7 +162,7 @@ async function startRecording(settings = {}) {
   };
 
   stream.getVideoTracks()[0].addEventListener('ended', () => {
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
       mediaRecorder.stop();
     }
   });
