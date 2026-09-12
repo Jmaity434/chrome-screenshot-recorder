@@ -51,8 +51,9 @@ async function closeControlsBar() {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Region capture
   if (message.type === 'CAPTURE_REGION') {
+    const tabId = sender.tab ? sender.tab.id : null;
     const windowId = sender.tab ? sender.tab.windowId : null;
-    handleRegionCapture(message.rect, message.dpr, windowId)
+    handleRegionCapture(message, tabId, windowId)
       .then(() => sendResponse({ ok: true }))
       .catch((err) => {
         console.error(err);
@@ -165,35 +166,133 @@ chrome.windows.onRemoved.addListener((windowId) => {
   }
 });
 
-async function handleRegionCapture(rect, dpr, windowId) {
-  const captureOptions = { format: 'png', quality: 100 };
-  let dataUrl;
-  if (windowId) {
-    dataUrl = await chrome.tabs.captureVisibleTab(windowId, captureOptions);
+async function handleRegionCapture(message, tabId, windowId) {
+  const docRect = message.docRect || message.rect;
+  const dpr = message.dpr || 1;
+  const initialScroll = message.initialScroll || { x: 0, y: 0 };
+  const viewportDim = message.viewportDim || { width: 1920, height: 1080 };
+
+  // Determine if the selected area exceeds the current viewport height or scroll boundary
+  const isMultiSlice = tabId && (
+    docRect.height > (viewportDim.height - 20) ||
+    docRect.y < initialScroll.y ||
+    (docRect.y + docRect.height) > (initialScroll.y + viewportDim.height)
+  );
+
+  let croppedBlob;
+
+  if (isMultiSlice) {
+    // Multi-slice scrolling capture for long selected areas
+    const maxHeight = Math.min(docRect.height, 16000); // Guard against GPU canvas memory limits
+    const canvasWidth = Math.round(docRect.width * dpr);
+    const canvasHeight = Math.round(maxHeight * dpr);
+
+    const canvas = new OffscreenCanvas(canvasWidth, canvasHeight);
+    const ctx = canvas.getContext('2d');
+
+    const targetEndY = docRect.y + maxHeight;
+    let currentY = docRect.y;
+
+    while (currentY < targetEndY) {
+      // 1. Scroll tab to the current slice position
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        func: (scrollX, scrollY) => window.scrollTo(scrollX, scrollY),
+        args: [docRect.x, currentY]
+      });
+
+      // 2. Wait for paint & rendering
+      await new Promise(r => setTimeout(r, 220));
+
+      // 3. Query actual scroll offset from tab
+      const [{ result: scrollInfo }] = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: () => ({
+          scrollX: window.scrollX,
+          scrollY: window.scrollY,
+          innerHeight: window.innerHeight,
+          innerWidth: window.innerWidth
+        })
+      });
+
+      // 4. Capture visible tab slice
+      const captureOptions = { format: 'png', quality: 100 };
+      const dataUrl = windowId
+        ? await chrome.tabs.captureVisibleTab(windowId, captureOptions)
+        : await chrome.tabs.captureVisibleTab(null, captureOptions);
+
+      const blob = await (await fetch(dataUrl)).blob();
+      const img = await createImageBitmap(blob);
+
+      // 5. Calculate document vertical span for this slice
+      const sliceDocY = Math.max(currentY, scrollInfo.scrollY);
+      const sliceDocYEnd = Math.min(targetEndY, scrollInfo.scrollY + scrollInfo.innerHeight);
+      const sliceH = sliceDocYEnd - sliceDocY;
+
+      if (sliceH <= 0) break;
+
+      // 6. Source crop coordinates in the captured viewport image
+      const sx = Math.max(0, Math.round((docRect.x - scrollInfo.scrollX) * dpr));
+      const sy = Math.max(0, Math.round((sliceDocY - scrollInfo.scrollY) * dpr));
+      const sw = Math.min(img.width - sx, canvasWidth);
+      const sh = Math.min(img.height - sy, Math.round(sliceH * dpr));
+
+      // 7. Destination in final stitched canvas
+      const dx = 0;
+      const dy = Math.round((sliceDocY - docRect.y) * dpr);
+      const dw = sw;
+      const dh = sh;
+
+      ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+
+      // Advance by the slice height we actually captured
+      currentY = sliceDocYEnd;
+
+      if (sliceDocYEnd >= targetEndY || sliceH < 10) break;
+    }
+
+    // Restore original tab scroll position
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        func: (x, y) => window.scrollTo(x, y),
+        args: [initialScroll.x, initialScroll.y]
+      });
+    } catch (_) {}
+
+    croppedBlob = await canvas.convertToBlob({ type: 'image/png' });
+
   } else {
-    dataUrl = await chrome.tabs.captureVisibleTab(null, captureOptions);
+    // Fast single-viewport capture when selection fits within visible screen
+    const captureOptions = { format: 'png', quality: 100 };
+    const dataUrl = windowId
+      ? await chrome.tabs.captureVisibleTab(windowId, captureOptions)
+      : await chrome.tabs.captureVisibleTab(null, captureOptions);
+
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+
+    const relX = docRect.x - initialScroll.x;
+    const relY = docRect.y - initialScroll.y;
+
+    let sx = Math.round(relX * dpr);
+    let sy = Math.round(relY * dpr);
+    let sw = Math.round(docRect.width * dpr);
+    let sh = Math.round(docRect.height * dpr);
+
+    sx = Math.max(0, Math.min(sx, bitmap.width - 1));
+    sy = Math.max(0, Math.min(sy, bitmap.height - 1));
+    sw = Math.max(1, Math.min(sw, bitmap.width - sx));
+    sh = Math.max(1, Math.min(sh, bitmap.height - sy));
+
+    const canvas = new OffscreenCanvas(sw, sh);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, sw, sh);
+
+    croppedBlob = await canvas.convertToBlob({ type: 'image/png' });
   }
 
-  const response = await fetch(dataUrl);
-  const blob = await response.blob();
-  const bitmap = await createImageBitmap(blob);
-
-  const scale = dpr || 1;
-  let sx = Math.round(rect.x * scale);
-  let sy = Math.round(rect.y * scale);
-  let sw = Math.round(rect.width * scale);
-  let sh = Math.round(rect.height * scale);
-
-  sx = Math.max(0, Math.min(sx, bitmap.width - 1));
-  sy = Math.max(0, Math.min(sy, bitmap.height - 1));
-  sw = Math.max(1, Math.min(sw, bitmap.width - sx));
-  sh = Math.max(1, Math.min(sh, bitmap.height - sy));
-
-  const canvas = new OffscreenCanvas(sw, sh);
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, sw, sh);
-
-  const croppedBlob = await canvas.convertToBlob({ type: 'image/png' });
   const captureId = 'shot_' + Date.now();
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const filename = `screenshot-region-${timestamp}.png`;
